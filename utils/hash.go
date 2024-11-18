@@ -3,6 +3,7 @@ package utils
 import (
 	"Authentication_System/config"
 	"errors"
+	"git init/config"
 	"time"
 
 	"github.com/golang-jwt/jwt"
