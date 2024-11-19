@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"Authentication_System/config"
+	"Authentication_System/internal/config"
 	"errors"
 	"time"
 

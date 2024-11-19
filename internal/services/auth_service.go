@@ -1,17 +1,29 @@
 package services
 
 import (
-	"Authentication_System/models"
-	"Authentication_System/repositories"
-	"Authentication_System/utils"
+	"Authentication_System/internal/models"
+	"Authentication_System/internal/repositories"
+	"Authentication_System/internal/utils"
 	"errors"
+	"fmt"
 
 	"github.com/golang-jwt/jwt"
 )
 
+type IAuthService interface {
+	SignUp(email, password string) error
+	SignIn(email, password string) (string, error)
+	RevokeToken(token string) error
+	RefreshToken(oldToken string) (string, error)
+}
+
 type AuthService struct {
-	Repo      *repositories.UserRepository
-	TokenRepo *repositories.JwtTokensRepository
+	Repo      repositories.IUserRepository
+	TokenRepo repositories.IJwtTokensRepository
+}
+
+func InitializeAuthService(repo repositories.IUserRepository, tokenRepo repositories.IJwtTokensRepository) *AuthService {
+	return &AuthService{Repo: repo, TokenRepo: tokenRepo}
 }
 
 func (s *AuthService) SignUp(email, password string) error {
@@ -41,6 +53,7 @@ func (s *AuthService) SignIn(email, password string) (string, error) {
 func (s *AuthService) RevokeToken(token string) error {
 	isRevoked, err := s.TokenRepo.IsTokenRevoked(token)
 	if err != nil {
+		fmt.Printf("Failed to revoke the token %s", err)
 		return err
 	}
 	if isRevoked {

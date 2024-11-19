@@ -1,22 +1,23 @@
 package handlers
 
 import (
-	"Authentication_System/services"
+	"Authentication_System/internal/services"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Dependency injection of AuthService
-var authService *services.AuthService
+type AuthHandler struct {
+	AuthService services.IAuthService
+}
 
-// InitializeAuthService initializes the AuthService instance
-func InitializeAuthService(service *services.AuthService) {
-	authService = service
+func NewAuthHandler(authService services.IAuthService) *AuthHandler {
+	return &AuthHandler{AuthService: authService}
 }
 
 // SignUp handles user registration
-func SignUp(c *gin.Context) {
+func (h *AuthHandler) SignUp(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required,min=8"`
@@ -29,7 +30,7 @@ func SignUp(c *gin.Context) {
 	}
 
 	// Call the service layer to register the user
-	err := authService.SignUp(req.Email, req.Password)
+	err := h.AuthService.SignUp(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create user"})
 		return
@@ -39,7 +40,7 @@ func SignUp(c *gin.Context) {
 }
 
 // SignIn handles user login and token generation
-func SignIn(c *gin.Context) {
+func (h *AuthHandler) SignIn(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required"`
@@ -52,7 +53,7 @@ func SignIn(c *gin.Context) {
 	}
 
 	// Call the service layer to authenticate the user
-	token, err := authService.SignIn(req.Email, req.Password)
+	token, err := h.AuthService.SignIn(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
@@ -62,7 +63,7 @@ func SignIn(c *gin.Context) {
 }
 
 // RefreshToken handles token renewal
-func RefreshToken(c *gin.Context) {
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	var req struct {
 		RefreshToken string `json:"refresh_token" binding:"required"`
 	}
@@ -74,7 +75,7 @@ func RefreshToken(c *gin.Context) {
 	}
 
 	// Call the service layer to refresh the token
-	newToken, err := authService.RefreshToken(req.RefreshToken)
+	newToken, err := h.AuthService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -84,7 +85,7 @@ func RefreshToken(c *gin.Context) {
 }
 
 // RevokeToken handles token revocation
-func RevokeToken(c *gin.Context) {
+func (h *AuthHandler) RevokeToken(c *gin.Context) {
 	var req struct {
 		Token string `json:"token" binding:"required"`
 	}
@@ -96,9 +97,13 @@ func RevokeToken(c *gin.Context) {
 	}
 
 	// Call the service layer to revoke the token
-	err := authService.RevokeToken(req.Token)
+	err := h.AuthService.RevokeToken(req.Token)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not revoke token"})
+		if strings.Contains(err.Error(), "token is already revoked") {
+			c.JSON(http.StatusOK, gin.H{"message": "token revoked successfully"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -106,7 +111,7 @@ func RevokeToken(c *gin.Context) {
 }
 
 // SecureEndpoint is an example of a protected route
-func SecureEndpoint(c *gin.Context) {
+func (h *AuthHandler) SecureEndpoint(c *gin.Context) {
 	// Retrieve the user ID from the context (set by middleware)
 	userID, exists := c.Get("userID")
 	if !exists {

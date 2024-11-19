@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"Authentication_System/utils"
+	"Authentication_System/internal/utils"
 	"net/http"
 	"strings"
 
