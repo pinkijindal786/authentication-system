@@ -10,6 +10,7 @@ import (
 
 func AuthMiddleware(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
+	utils := utils.InitializeUtils()
 	if authHeader == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing Authorization header"})
 		c.Abort()

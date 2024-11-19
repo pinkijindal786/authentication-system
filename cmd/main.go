@@ -2,6 +2,7 @@ package main
 
 import (
 	"Authentication_System/internal/middlewares"
+	"Authentication_System/internal/utils"
 
 	"Authentication_System/internal/database"
 	"Authentication_System/internal/handlers"
@@ -13,9 +14,10 @@ import (
 
 func InitializeUserHandler() *handlers.AuthHandler {
 	databaseConnection := database.ConnectDatabase()
+	utils := utils.InitializeUtils()
 	userRepo := repositories.InitializeUserRepository(databaseConnection)
 	tokenRepo := repositories.InitializeJwtTokensRepository(databaseConnection)
-	userService := services.InitializeAuthService(userRepo, tokenRepo)
+	userService := services.InitializeAuthService(userRepo, tokenRepo, utils)
 	userHandler := handlers.NewAuthHandler(userService)
 	return userHandler
 }

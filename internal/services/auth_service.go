@@ -20,14 +20,15 @@ type IAuthService interface {
 type AuthService struct {
 	Repo      repositories.IUserRepository
 	TokenRepo repositories.IJwtTokensRepository
+	Utils     utils.IUtils
 }
 
-func InitializeAuthService(repo repositories.IUserRepository, tokenRepo repositories.IJwtTokensRepository) *AuthService {
-	return &AuthService{Repo: repo, TokenRepo: tokenRepo}
+func InitializeAuthService(repo repositories.IUserRepository, tokenRepo repositories.IJwtTokensRepository, utils utils.IUtils) *AuthService {
+	return &AuthService{Repo: repo, TokenRepo: tokenRepo, Utils: utils}
 }
 
 func (s *AuthService) SignUp(email, password string) error {
-	hashedPassword, err := utils.HashPassword(password)
+	hashedPassword, err := s.Utils.HashPassword(password)
 	if err != nil {
 		return err
 	}
@@ -43,11 +44,11 @@ func (s *AuthService) SignUp(email, password string) error {
 
 func (s *AuthService) SignIn(email, password string) (string, error) {
 	user, err := s.Repo.GetUserByEmail(email)
-	if err != nil || !utils.CheckPasswordHash(password, user.Password) {
+	if err != nil || !s.Utils.CheckPasswordHash(password, user.Password) {
 		return "", errors.New("invalid credentials")
 	}
 
-	return utils.GenerateJWT(user.ID)
+	return s.Utils.GenerateJWT(user.ID)
 }
 
 func (s *AuthService) RevokeToken(token string) error {
@@ -73,7 +74,7 @@ func (s *AuthService) RefreshToken(oldToken string) (string, error) {
 	}
 
 	// Validate and extract userID from old token
-	parsedToken, err := utils.ValidateJWT(oldToken)
+	parsedToken, err := s.Utils.ValidateJWT(oldToken)
 	if err != nil {
 		return "", errors.New("invalid token")
 	}
@@ -86,7 +87,7 @@ func (s *AuthService) RefreshToken(oldToken string) (string, error) {
 	userID := uint(claims["userId"].(uint))
 
 	// Generate new token
-	newToken, err := utils.GenerateJWT(userID)
+	newToken, err := s.Utils.GenerateJWT(userID)
 	if err != nil {
 		return "", err
 	}
