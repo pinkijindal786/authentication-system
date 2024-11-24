@@ -1,5 +1,5 @@
 package models
 
-type RevokedToken struct {
+type JWTToken struct {
 	Token string `json:"token"`
 }

@@ -21,12 +21,12 @@ func InitializeJwtTokensRepository(db *gorm.DB) *JwtTokensRepository {
 }
 
 func (r *JwtTokensRepository) RevokeToken(token string) error {
-	revokedToken := models.RevokedToken{Token: token}
+	revokedToken := models.JWTToken{Token: token}
 	return r.DB.Create(&revokedToken).Error
 }
 
 func (r *JwtTokensRepository) IsTokenRevoked(token string) (bool, error) {
-	var revokedToken models.RevokedToken
+	var revokedToken models.JWTToken
 	if err := r.DB.Where("token = ?", token).First(&revokedToken).Error; err != nil {
 		if strings.Contains(err.Error(), "record not found") {
 			return false, nil

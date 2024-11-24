@@ -16,7 +16,6 @@ type IAuthService interface {
 	RevokeToken(token string) error
 	RefreshToken(oldToken string) (string, error)
 }
-
 type AuthService struct {
 	Repo      repositories.IUserRepository
 	TokenRepo repositories.IJwtTokensRepository

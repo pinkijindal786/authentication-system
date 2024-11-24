@@ -21,7 +21,7 @@ func ConnectDatabase() *gorm.DB {
 	if err != nil {
 		log.Fatalf("Failed to migrate database schema: %v", err)
 	}
-	err = DB.AutoMigrate(&models.RevokedToken{})
+	err = DB.AutoMigrate(&models.JWTToken{})
 	if err != nil {
 		log.Fatalf("Failed to migrate database schema: %v", err)
 	}

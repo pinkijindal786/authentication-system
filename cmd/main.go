@@ -36,8 +36,5 @@ func main() {
 		auth.POST("/revoke", middlewares.AuthMiddleware, handlers.RevokeToken)
 	}
 
-	// Protected route example
-	r.GET("/secure", middlewares.AuthMiddleware, handlers.SecureEndpoint)
-
 	r.Run(":8080") // Start the server
 }

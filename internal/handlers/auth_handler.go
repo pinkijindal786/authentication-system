@@ -109,15 +109,3 @@ func (h *AuthHandler) RevokeToken(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "token revoked successfully"})
 }
-
-// SecureEndpoint is an example of a protected route
-func (h *AuthHandler) SecureEndpoint(c *gin.Context) {
-	// Retrieve the user ID from the context (set by middleware)
-	userID, exists := c.Get("userID")
-	if !exists {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "user ID not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "welcome to the secure endpoint", "user_id": userID})
-}
