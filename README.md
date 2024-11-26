@@ -54,7 +54,7 @@ This is a RESTful Authentication System built using [Go (Golang)](https://golang
 
 4. Run the application:
    ```bash
-   go run main.go
+   go run cmd/main.go
    ```
 
 ---
