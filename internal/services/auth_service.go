@@ -1,32 +1,33 @@
 package services
 
 import (
-	"Authentication_System/internal/models"
-	"Authentication_System/internal/repositories"
-	"Authentication_System/internal/utils"
+	"authentication_system/internal/models"
+	"authentication_system/internal/repositories"
+	"authentication_system/internal/utils"
 	"errors"
 	"fmt"
 
 	"github.com/golang-jwt/jwt"
 )
 
-type IAuthService interface {
+type AuthService interface {
 	SignUp(email, password string) error
-	SignIn(email, password string) (string, error)
+	SignIn(email, password string) (*models.SignInResponse, error)
 	RevokeToken(token string) error
-	RefreshToken(oldToken string) (string, error)
-}
-type AuthService struct {
-	Repo      repositories.IUserRepository
-	TokenRepo repositories.IJwtTokensRepository
-	Utils     utils.IUtils
+	RefreshToken(refreshToken string) (string, error)
 }
 
-func InitializeAuthService(repo repositories.IUserRepository, tokenRepo repositories.IJwtTokensRepository, utils utils.IUtils) *AuthService {
-	return &AuthService{Repo: repo, TokenRepo: tokenRepo, Utils: utils}
+type AuthServiceData struct {
+	Repo      repositories.UserRepository
+	TokenRepo repositories.JwtTokensRepository
+	Utils     utils.Utils
 }
 
-func (s *AuthService) SignUp(email, password string) error {
+func InitializeAuthService(repo repositories.UserRepository, tokenRepo repositories.JwtTokensRepository, utils utils.Utils) *AuthServiceData {
+	return &AuthServiceData{Repo: repo, TokenRepo: tokenRepo, Utils: utils}
+}
+
+func (s *AuthServiceData) SignUp(email, password string) error {
 	hashedPassword, err := s.Utils.HashPassword(password)
 	if err != nil {
 		return err
@@ -41,16 +42,26 @@ func (s *AuthService) SignUp(email, password string) error {
 	return s.Repo.CreateUser(user)
 }
 
-func (s *AuthService) SignIn(email, password string) (string, error) {
+func (s *AuthServiceData) SignIn(email, password string) (*models.SignInResponse, error) {
 	user, err := s.Repo.GetUserByEmail(email)
 	if err != nil || !s.Utils.CheckPasswordHash(password, user.Password) {
-		return "", errors.New("invalid credentials")
+		return nil, errors.New("invalid credentials")
 	}
-
-	return s.Utils.GenerateJWT(user.ID)
+	authToken, err := s.Utils.GenerateAuthToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	refreshToken, err := s.Utils.GenerateRefreshToken(user.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &models.SignInResponse{
+		AuthToken:    authToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
-func (s *AuthService) RevokeToken(token string) error {
+func (s *AuthServiceData) RevokeToken(token string) error {
 	isRevoked, err := s.TokenRepo.IsTokenRevoked(token)
 	if err != nil {
 		fmt.Printf("Failed to revoke the token %s", err)
@@ -62,9 +73,9 @@ func (s *AuthService) RevokeToken(token string) error {
 	return s.TokenRepo.RevokeToken(token)
 }
 
-func (s *AuthService) RefreshToken(oldToken string) (string, error) {
+func (s *AuthServiceData) RefreshToken(refreshToken string) (string, error) {
 	// Check if token is revoked
-	isRevoked, err := s.TokenRepo.IsTokenRevoked(oldToken)
+	isRevoked, err := s.TokenRepo.IsTokenRevoked(refreshToken)
 	if err != nil {
 		return "", err
 	}
@@ -73,7 +84,7 @@ func (s *AuthService) RefreshToken(oldToken string) (string, error) {
 	}
 
 	// Validate and extract userID from old token
-	parsedToken, err := s.Utils.ValidateJWT(oldToken)
+	parsedToken, err := s.Utils.ValidateJWT(refreshToken)
 	if err != nil {
 		return "", errors.New("invalid token")
 	}
@@ -82,19 +93,13 @@ func (s *AuthService) RefreshToken(oldToken string) (string, error) {
 	if !ok {
 		return "", errors.New("invalid token claims")
 	}
-	// email := claims["email"].(string)
-	userID := uint(claims["userId"].(uint))
+	userID := uint(claims["userId"].(float64))
 
-	// Generate new token
-	newToken, err := s.Utils.GenerateJWT(userID)
+	// Generate new auth token
+	newAuthToken, err := s.Utils.GenerateAuthToken(userID)
 	if err != nil {
 		return "", err
 	}
 
-	// Revoke old token
-	if err := s.TokenRepo.RevokeToken(oldToken); err != nil {
-		return "", err
-	}
-
-	return newToken, nil
+	return newAuthToken, nil
 }

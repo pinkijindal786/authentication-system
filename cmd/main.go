@@ -1,13 +1,13 @@
 package main
 
 import (
-	"Authentication_System/internal/middlewares"
-	"Authentication_System/internal/utils"
+	"authentication_system/internal/middlewares"
+	"authentication_system/internal/utils"
 
-	"Authentication_System/internal/database"
-	"Authentication_System/internal/handlers"
-	"Authentication_System/internal/repositories"
-	"Authentication_System/internal/services"
+	"authentication_system/internal/database"
+	"authentication_system/internal/handlers"
+	"authentication_system/internal/repositories"
+	"authentication_system/internal/services"
 
 	"github.com/gin-gonic/gin"
 )

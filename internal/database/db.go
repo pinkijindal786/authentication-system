@@ -1,7 +1,7 @@
 package database
 
 import (
-	"Authentication_System/internal/models"
+	"authentication_system/internal/models"
 	"log"
 
 	"gorm.io/driver/sqlite"

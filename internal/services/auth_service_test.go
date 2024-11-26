@@ -1,9 +1,9 @@
 package services
 
 import (
-	"Authentication_System/internal/models"
-	"Authentication_System/internal/repositories"
-	"Authentication_System/internal/utils"
+	"authentication_system/internal/models"
+	"authentication_system/internal/repositories"
+	"authentication_system/internal/utils"
 	"errors"
 	"testing"
 	"time"
@@ -14,9 +14,9 @@ import (
 )
 
 func TestSignUp(t *testing.T) {
-	mockRepo := new(repositories.MockIUserRepository)
-	mockTokenRepo := new(repositories.MockIJwtTokensRepository)
-	mockUtils := new(utils.MockIUtils)
+	mockRepo := new(repositories.MockUserRepository)
+	mockTokenRepo := new(repositories.MockJwtTokensRepository)
+	mockUtils := new(utils.MockUtils)
 
 	mockRepo.On("CreateUser", mock.Anything).Return(nil)
 	mockUtils.On("HashPassword", mock.Anything).Return("mock", nil)
@@ -30,16 +30,17 @@ func TestSignUp(t *testing.T) {
 }
 
 func TestSignIn_Success(t *testing.T) {
-	mockRepo := new(repositories.MockIUserRepository)
-	mockTokenRepo := new(repositories.MockIJwtTokensRepository)
-	mockUtils := new(utils.MockIUtils)
+	mockRepo := new(repositories.MockUserRepository)
+	mockTokenRepo := new(repositories.MockJwtTokensRepository)
+	mockUtils := new(utils.MockUtils)
 
 	mockRepo.On("GetUserByEmail", "test@example.com").Return(&models.User{
 		ID:       1,
 		Email:    "test@example.com",
 		Password: "hashedPassword",
 	}, nil)
-	mockUtils.On("GenerateJWT", mock.Anything).Return("mockToken", nil)
+	mockUtils.On("GenerateAuthToken", mock.Anything).Return("mockAuthToken", nil)
+	mockUtils.On("GenerateRefreshToken", mock.Anything).Return("mockRefreshToken", nil)
 	mockUtils.On("CheckPasswordHash", mock.Anything, mock.Anything).Return(true)
 
 	authService := InitializeAuthService(mockRepo, mockTokenRepo, mockUtils)
@@ -47,14 +48,15 @@ func TestSignIn_Success(t *testing.T) {
 	token, err := authService.SignIn("test@example.com", "password123")
 
 	assert.Nil(t, err)
-	assert.Equal(t, "mockToken", token)
+	assert.Equal(t, "mockAuthToken", token.AuthToken)
+	assert.Equal(t, "mockRefreshToken", token.RefreshToken)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestRevokeToken_Success(t *testing.T) {
-	mockRepo := new(repositories.MockIUserRepository)
-	mockTokenRepo := new(repositories.MockIJwtTokensRepository)
-	mockUtils := new(utils.MockIUtils)
+	mockRepo := new(repositories.MockUserRepository)
+	mockTokenRepo := new(repositories.MockJwtTokensRepository)
+	mockUtils := new(utils.MockUtils)
 
 	authService := InitializeAuthService(mockRepo, mockTokenRepo, mockUtils)
 
@@ -68,9 +70,9 @@ func TestRevokeToken_Success(t *testing.T) {
 }
 
 func TestRevokeToken_AlreadyRevoked(t *testing.T) {
-	mockRepo := new(repositories.MockIUserRepository)
-	mockTokenRepo := new(repositories.MockIJwtTokensRepository)
-	mockUtils := new(utils.MockIUtils)
+	mockRepo := new(repositories.MockUserRepository)
+	mockTokenRepo := new(repositories.MockJwtTokensRepository)
+	mockUtils := new(utils.MockUtils)
 
 	authService := InitializeAuthService(mockRepo, mockTokenRepo, mockUtils)
 
@@ -84,14 +86,13 @@ func TestRevokeToken_AlreadyRevoked(t *testing.T) {
 }
 
 func TestRefreshToken_Success(t *testing.T) {
-	mockRepo := new(repositories.MockIUserRepository)
-	mockTokenRepo := new(repositories.MockIJwtTokensRepository)
-	mockUtils := new(utils.MockIUtils)
+	mockRepo := new(repositories.MockUserRepository)
+	mockTokenRepo := new(repositories.MockJwtTokensRepository)
+	mockUtils := new(utils.MockUtils)
 
 	authService := InitializeAuthService(mockRepo, mockTokenRepo, mockUtils)
 
 	mockTokenRepo.On("IsTokenRevoked", "oldToken").Return(false, nil)
-	mockTokenRepo.On("RevokeToken", "oldToken").Return(nil)
 	mockUtils.On("ValidateJWT", "oldToken").Return(&jwt.Token{
 		Raw:    "mockedRawToken",
 		Method: jwt.SigningMethodHS256,
@@ -99,26 +100,25 @@ func TestRefreshToken_Success(t *testing.T) {
 			"alg": "HS256",
 		},
 		Claims: jwt.MapClaims{
-			"userId": uint(123),
+			"userId": float64(123),
 			"exp":    jwt.TimeFunc().Add(time.Hour * 24).Unix(), // 24 hours expiration
 		},
 		Signature: "mockedSignature",
 		Valid:     true, // Ensures the token is marked valid
 	}, nil)
-	mockUtils.On("GenerateJWT", mock.Anything).Return("newToken", nil)
-	mockUtils.On("RevokeToken", mock.Anything).Return(nil)
+	mockUtils.On("GenerateAuthToken", mock.Anything).Return("mockAuthToken", nil)
 
 	token, err := authService.RefreshToken("oldToken")
 
 	assert.Nil(t, err)
-	assert.Equal(t, "newToken", token)
+	assert.Equal(t, "mockAuthToken", token)
 	mockTokenRepo.AssertExpectations(t)
 }
 
 func TestRefreshToken_InvalidToken(t *testing.T) {
-	mockRepo := new(repositories.MockIUserRepository)
-	mockTokenRepo := new(repositories.MockIJwtTokensRepository)
-	mockUtils := new(utils.MockIUtils)
+	mockRepo := new(repositories.MockUserRepository)
+	mockTokenRepo := new(repositories.MockJwtTokensRepository)
+	mockUtils := new(utils.MockUtils)
 
 	mockTokenRepo.On("IsTokenRevoked", "invalidToken").Return(false, nil)
 	mockUtils.On("ValidateJWT", "invalidToken").Return(nil, errors.New("Invalid token"))

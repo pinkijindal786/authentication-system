@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"Authentication_System/internal/services"
+	"authentication_system/internal/models"
+	"authentication_system/internal/services"
 	"net/http"
 	"strings"
 
@@ -9,27 +10,21 @@ import (
 )
 
 type AuthHandler struct {
-	AuthService services.IAuthService
+	AuthService services.AuthService
 }
 
-func NewAuthHandler(authService services.IAuthService) *AuthHandler {
+func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	return &AuthHandler{AuthService: authService}
 }
 
-// SignUp handles user registration
 func (h *AuthHandler) SignUp(c *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=8"`
-	}
+	var req models.SignUpRequest
 
-	// Validate the request body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Call the service layer to register the user
 	err := h.AuthService.SignUp(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create user"})
@@ -39,42 +34,31 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "user created successfully"})
 }
 
-// SignIn handles user login and token generation
 func (h *AuthHandler) SignIn(c *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-	}
+	var req models.SignInRequest
 
-	// Validate the request body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Call the service layer to authenticate the user
-	token, err := h.AuthService.SignIn(req.Email, req.Password)
+	result, err := h.AuthService.SignIn(req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"access_token": token})
+	c.JSON(http.StatusOK, gin.H{"authToken": result.AuthToken, "refreshToken": result.RefreshToken})
 }
 
-// RefreshToken handles token renewal
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	var req struct {
-		RefreshToken string `json:"refresh_token" binding:"required"`
-	}
+	var req models.RefreshTokenRequest
 
-	// Validate the request body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Call the service layer to refresh the token
 	newToken, err := h.AuthService.RefreshToken(req.RefreshToken)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -84,19 +68,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"access_token": newToken})
 }
 
-// RevokeToken handles token revocation
 func (h *AuthHandler) RevokeToken(c *gin.Context) {
-	var req struct {
-		Token string `json:"token" binding:"required"`
-	}
+	var req models.RevokeTokenRequest
 
-	// Validate the request body
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
 
-	// Call the service layer to revoke the token
 	err := h.AuthService.RevokeToken(req.Token)
 	if err != nil {
 		if strings.Contains(err.Error(), "token is already revoked") {

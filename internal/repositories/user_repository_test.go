@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"Authentication_System/internal/models"
+	"authentication_system/internal/models"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

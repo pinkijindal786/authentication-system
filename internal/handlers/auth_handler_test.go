@@ -1,8 +1,9 @@
 package handlers_test
 
 import (
-	"Authentication_System/internal/handlers"
-	"Authentication_System/internal/services"
+	"authentication_system/internal/handlers"
+	"authentication_system/internal/models"
+	"authentication_system/internal/services"
 	"bytes"
 	"errors"
 	"net/http"
@@ -20,7 +21,7 @@ func setupRouter() *gin.Engine {
 
 // TestSignUp_Success tests successful user registration
 func TestSignUp_Success(t *testing.T) {
-	mockService := &services.MockIAuthService{}
+	mockService := &services.MockAuthService{}
 	mockService.On("SignUp", "test@example.com", "password123").Return(nil)
 
 	handler := handlers.NewAuthHandler(mockService)
@@ -41,7 +42,7 @@ func TestSignUp_Success(t *testing.T) {
 
 // TestSignUp_Failure tests user registration failure
 func TestSignUp_Failure(t *testing.T) {
-	mockService := &services.MockIAuthService{}
+	mockService := &services.MockAuthService{}
 	mockService.On("SignUp", "test@example.com", "password123").Return(errors.New("some error"))
 
 	handler := handlers.NewAuthHandler(mockService)
@@ -62,8 +63,11 @@ func TestSignUp_Failure(t *testing.T) {
 
 // TestSignIn_Success tests successful user login
 func TestSignIn_Success(t *testing.T) {
-	mockService := &services.MockIAuthService{}
-	mockService.On("SignIn", "test@example.com", "password123").Return("mockToken", nil)
+	mockService := &services.MockAuthService{}
+	mockService.On("SignIn", "test@example.com", "password123").Return(&models.SignInResponse{
+		AuthToken:    "mockToken",
+		RefreshToken: "mockToken",
+	}, nil)
 
 	handler := handlers.NewAuthHandler(mockService)
 	router := setupRouter()
@@ -77,14 +81,14 @@ func TestSignIn_Success(t *testing.T) {
 	router.ServeHTTP(resp, req)
 
 	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.JSONEq(t, `{"access_token":"mockToken"}`, resp.Body.String())
+	assert.JSONEq(t, `{"authToken":"mockToken","refreshToken":"mockToken"}`, resp.Body.String())
 	mockService.AssertCalled(t, "SignIn", "test@example.com", "password123")
 }
 
 // TestSignIn_InvalidCredentials tests login with invalid credentials
 func TestSignIn_InvalidCredentials(t *testing.T) {
-	mockService := &services.MockIAuthService{}
-	mockService.On("SignIn", "test@example.com", "wrongpassword").Return("", errors.New("invalid credentials"))
+	mockService := &services.MockAuthService{}
+	mockService.On("SignIn", "test@example.com", "wrongpassword").Return(nil, errors.New("invalid credentials"))
 
 	handler := handlers.NewAuthHandler(mockService)
 	router := setupRouter()
@@ -104,7 +108,7 @@ func TestSignIn_InvalidCredentials(t *testing.T) {
 
 // TestRefreshToken_Success tests successful token refresh
 func TestRefreshToken_Success(t *testing.T) {
-	mockService := &services.MockIAuthService{}
+	mockService := &services.MockAuthService{}
 	mockService.On("RefreshToken", "mockRefreshToken").Return("newMockToken", nil)
 
 	handler := handlers.NewAuthHandler(mockService)
@@ -125,7 +129,7 @@ func TestRefreshToken_Success(t *testing.T) {
 
 // TestRevokeToken_Success tests successful token revocation
 func TestRevokeToken_Success(t *testing.T) {
-	mockService := &services.MockIAuthService{}
+	mockService := &services.MockAuthService{}
 	mockService.On("RevokeToken", "mockToken").Return(nil)
 
 	handler := handlers.NewAuthHandler(mockService)

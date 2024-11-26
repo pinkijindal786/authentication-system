@@ -1,4 +1,4 @@
-module Authentication_System
+module authentication_system
 
 go 1.23.2
 
