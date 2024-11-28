@@ -1,7 +1,6 @@
 # Authentication_System
 
-This is a RESTful Authentication System built using [Go (Golang)](https://golang.org/) and the [Gin Web Framework](https://gin-gonic.com/). It supports user registration, login, token management, and secure endpoints protected by authentication middleware.
-
+This is a RESTful Authentication System built using [Go (Golang)](https://golang.org/) and the [Gin Web Framework](https://gin-gonic.com/). It supports user registration, login and token management.
 ---
 
 ## Table of Contents
@@ -25,7 +24,6 @@ This is a RESTful Authentication System built using [Go (Golang)](https://golang
 - **Token Management**:
   - Refresh expired tokens.
   - Revoke tokens.
-- **Secure Endpoints**: Protect routes using middleware that validates JWTs.
 
 ---
 
@@ -77,11 +75,40 @@ This is a RESTful Authentication System built using [Go (Golang)](https://golang
 | POST   | `/auth/refresh`| Refresh an expired access token.     |
 | POST   | `/auth/revoke` | Revoke a JWT token.                 |
 
-### **Protected Routes**
 
-| Method | Endpoint      | Description                       |
-|--------|---------------|-----------------------------------|
-| GET    | `/secure`     | Access a protected route example.|
+### Example curl Commands
+
+#### Sign In
+```bash
+curl --location 'http://localhost:8080/auth/signin' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzIwODg2NzcsImlkIjoxfQ.kc21XfkrSZwH2-9WZp0d5lGdkpNMxGLJbHOTlAZk7eU' \
+--data-raw '{
+    "email": "abc@gmail.com",
+     "password":"abcdgasdgr"
+}'
+```
+
+#### Sign Up
+```bash
+curl --location 'http://localhost:8080/auth/signup' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzIwODg2NzcsImlkIjoxfQ.kc21XfkrSZwH2-9WZp0d5lGdkpNMxGLJbHOTlAZk7eU' \
+--data-raw '{
+    "email": "abc@gmail.com",
+     "password":"abcdgasdgr"
+}'
+```
+
+#### Refresh Token
+```bash
+curl --location 'http://localhost:8080/auth/refresh' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzIwODg2NzcsImlkIjoxfQ.kc21XfkrSZwH2-9WZp0d5lGdkpNMxGLJbHOTlAZk7eU' \
+--data '{
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MzUxOTEyMTYsInR5cGUiOiJyZWZyZXNoIiwidXNlcklkIjoxfQ.RG4DcG1d6N0ber5a5zdFcmT3xhAy-YVlAwoq-a89DTQ"
+}'
+```
 
 ---
 
@@ -112,7 +139,6 @@ This is a RESTful Authentication System built using [Go (Golang)](https://golang
      - `SignIn`: Authenticates users and generates JWT tokens.
      - `RefreshToken`: Renews expired tokens.
      - `RevokeToken`: Invalidates tokens.
-     - `SecureEndpoint`: Demonstrates a protected endpoint.
 
 ### 2. **Service Layer**
    - Handles business logic like authentication, token management, and user validation.
